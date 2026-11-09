@@ -1,0 +1,51 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      config-file:
+        required: false
+        type: string
+        default: 'release-please-config.json'
+        description: Path to the release-please config file
+      manifest-file:
+        required: false
+        type: string
+        default: '.release-please-manifest.json'
+        description: Path to the release-please manifest file
+    secrets:
+      RELEASE_PLEASE_APP_CLIENT_ID:
+        required: false
+        description: GitHub App Client ID for authentication
+      RELEASE_PLEASE_APP_ID:
+        required: false
+        description: '[DEPRECATED] Use RELEASE_PLEASE_APP_CLIENT_ID. Kept for backward compatibility.'
+      RELEASE_PLEASE_APP_PEM:
+        required: true
+        description: GitHub App private key for authentication
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Generate GitHub App Token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          client-id: ${{ secrets.RELEASE_PLEASE_APP_CLIENT_ID || secrets.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PEM }}
+
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: ${{ inputs.config-file || 'release-please-config.json' }}
+          manifest-file: ${{ inputs.manifest-file || '.release-please-manifest.json' }}
