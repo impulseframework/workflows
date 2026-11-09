@@ -1,0 +1,39 @@
+name: "Enforce semantic pull request title"
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  main:
+    name: Validate PR title
+    # Only a pull request has a title to validate: a caller that also runs on a push to its
+    # base branch (to warm its caches) skips this job there, and the skip counts as a pass.
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            feature
+            fix
+            perf
+            revert
+            docs
+            deps
+            style
+            chore
+            refactor
+            cleanup
+            test
+            build
+            ci
+            upgrade
+            infra
+            config
