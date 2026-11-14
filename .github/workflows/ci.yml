@@ -4,10 +4,21 @@
 # outputs a job names, the action pins, and the shell of every run step through shellcheck)
 # and fails the pull request on the first one it cannot accept. The semantic-title check
 # runs by local path, which also proves that the reusable workflow can be called at all.
+# The Go workflow's detect-modules step decides what every other job of that workflow does,
+# so its script is taken out of the file and held to a table of cases over small
+# repositories made for the purpose (tests/detect_modules_test.py). And the Go workflow
+# itself runs here, called by local path as this pull request has it, on the one Go package
+# the repository keeps for the purpose (tests/fixture, the module of the go.mod at the
+# root), with every input that leaves a run out turned on: a draft pull request here skips
+# the tests, the push a merge makes compiles and saves the caches, and the release pull
+# request, whose diff is the changelog and the manifest, changes no module.
 name: CI
 on:
   pull_request:
-    types: [opened, synchronize, reopened] # these are the defaults - synchronize means 'commits pushed to PR'
+    # opened, synchronize (commits pushed) and reopened are the defaults. ready_for_review is
+    # what starts the Go workflow's tests on a pull request that was a draft (tests-on-draft
+    # below).
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [master]
 
@@ -35,6 +46,30 @@ jobs:
           cache: false
       - name: Lint the workflows
         run: go run "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}" -color
+  detect-modules-tests:
+    name: detect-modules tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Hold golang-ci's detect-modules step to its table of cases
+        run: python3 tests/detect_modules_test.py
+  golang-ci:
+    # The job id a caller gives the workflow, so the checks here carry a caller's names.
+    # A called workflow gets no more than its caller grants: the scans upload nothing here
+    # (upload-sarif is off) and are still declared with the permissions they ask for.
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    uses: ./.github/workflows/golang-ci.yml
+    with:
+      build-tags: '["", "dev"]'
+      golangci-lint-version: 'v2.14.0'
+      tests-on-draft: false
+      warm-caches-on-base-branch: true
+      skip-release-only-changes: true
   semantic-titles:
     # A called workflow gets no more than its caller grants, and this file grants nothing
     # at the top: the title check reads the pull request.
