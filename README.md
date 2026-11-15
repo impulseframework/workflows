@@ -69,7 +69,7 @@ on:
 
 jobs:
   golang-ci:
-    uses: impulseframework/workflows/.github/workflows/golang-ci.yml@<commit> # v0.2.0
+    uses: impulseframework/workflows/.github/workflows/golang-ci.yml@<commit> # v0.1.1
     with:
       build-tags: '[""]'
       runs-on-heavy: ${{ vars.CI_LARGE_RUNNER }}
