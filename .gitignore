@@ -1,0 +1,2 @@
+# Python writes its bytecode beside the test it ran.
+__pycache__/
